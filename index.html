@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta http-equiv="CONTENT-TYPE" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BUDGET TRACKER</title>
+  <style>
+  body{
+    width: 100%;
+    min-height: 100vh;
+    overflow-y: auto; /* Enable full page scrollin */
+    background: #333;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .container{
+    margin-top: 20px;
+    margin-bottom: 20px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 90%;
+    border-top: none;
+    border-right: none;
+    border: 2px solid green;
+    border-radius: 15px;
+  }
+  .container h1{
+    color: #fff;
+    font-size: 30px;
+    text-align: center;
+    margin-bottom: 20px;
+    text-decoration: under-lined;
+  }
+  .myTable{
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /*Horizontal centering*/
+    width: 100%;
+    text-align: center;
+    border: none;
+    max-height: 60vh; /* Dynamic height based on viewport */
+    overflow-y: auto; /* Enable table scrolling */
+  }
+  .input-field{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    padding: 20px 10px;
+    position: relative;
+  }
+  .input-field:focus{
+    border: 1px solid #3e7195;
+  }
+  .input-field input{
+    margin: 10px;
+    width: 90%;
+    height: 40px;
+    text-align: center;
+    font-size: 15px;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 5px 15px #07abb4;
+  }
+  .input-field input::placeholder{
+    color: #000000;
+  }
+  .input-field button{
+    width: 20%;
+    height: 40px;
+    border: 0;
+    border-radius: 5px;
+    background: #00ff00;
+    transition: 3s ease;
+    font-size: 20px;
+  }
+  .input-field button:hover{
+    border: 1px solid #3e7195;
+    background: #07abb4;
+    color: #00ff00;
+  }
+  table{
+    table-layout: fixed;
+    border: 1px solid #ff0fff;
+    border-collapse: collapse;
+    color: #fff;
+    width: 95%;
+    margin: 0 auto; /*Horizontal centering*/
+  }
+  th, td{
+    text-align: center;
+    border: 1px solid #ff0fff;
+    padding: 8px;
+    color: #fff;
+  }
+  .myTable h2, p{
+    color: #fff;
+    font-size: 15px;
+  }
+  .myTable h2 span{
+    color: #00ff00;
+  }
+  .myTable span{
+    color: #00ff00;
+  }
+  a{
+    position: fixed; /* Keep the logout button always visible */
+    bottom: 20px;
+    right: 20px;
+    color: #55df7a;
+    width: 80px;
+    border: 1px solid #3e7195;
+    margin: 20px;
+    font-size: 20px;
+    float: right;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 5px 15px #07abf4;
+  }
+  </style>
+</head>
+<body>
+  <div class="container">
+  <h1>TRACE YOUR MONEY</h1>
+    <div class="input-field">
+      <input type="text" id="expenditure" placeholder="Expenditure">
+      <input type="number" id="value" placeholder="Amount">
+      <button id="myBtn">Enter</button>
+    </div>
+    
+    <div class="myTable">
+      <h2>Here is your budget today: <span id="date"></span></h2>
+      <table id="table">
+        <tr>
+          <th>DAY</th>
+          <th>EXPENSES</th>
+          <th>AMOUNT</th>
+        </tr>
+        <tbody></tbody>
+      </table>
+      <p>Total money used: <span id="total">0</span> Tsh</p>
+    </div>
+    <a href="/logout">Logout</a>
+  </div>
+  
+  <script>
+  const myBtn = document.querySelector("#myBtn");
+  const tableBody = document.querySelector("#table tbody");
+  
+  //Load saved data on page load
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const dateBox = document.getElementById("date");
+    let Fdate = new Date();
+    let date = Fdate.getDate();
+    let month = Fdate.getMonth() + 1;
+    let year = Fdate.getFullYear();
+    dateBox.innerHTML = `${date}/${month}/${year}`;
+  });
+  
+  // Load and populate data
+    const savedData = JSON.parse(localStorage.getItem('userData')) || [];
+    savedData.forEach(user => {
+      const newRow = tableBody.insertRow();
+      newRow.innerHTML = `
+        <td>${user.day}</td>
+        <td>${user.expense}</td>
+        <td>${user.money}</td>
+      `;
+    
+    getTotal();
+  });
+
+  myBtn.addEventListener('click', () => {
+    const day = getDayName();
+    const money = document.querySelector("#value").value;
+    const expense = document.querySelector("#expenditure").value;
+
+    if(!expense || !money) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    // Add to table
+    const newRow = tableBody.insertRow();
+    newRow.innerHTML = `
+      <td>${day}</td>
+      <td>${expense}</td>
+      <td>${money}</td>
+    `;
+
+    // Clear inputs
+    document.getElementById("expenditure").value = "";
+    document.getElementById("value").value = "";
+
+    // Save to localStorage
+    const user = { 
+      id: Date.now(), 
+      day, 
+      expense, 
+      money 
+    };
+    saveHist(user);
+    getTotal();
+  });
+
+  function getTotal() {
+    let total = 0;
+    document.querySelectorAll("#table tbody td:nth-child(3)").forEach(cell => {
+      total += parseFloat(cell.textContent) || 0;
+    });
+    document.getElementById("total").textContent = total;
+  }
+
+  function getDayName(date = new Date()) {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[date.getDay()];
+  }
+  
+  function saveHist(user) {
+    const existingData = JSON.parse(localStorage.getItem('userData')) || [];
+    existingData.push(user);
+    localStorage.setItem('userData', JSON.stringify(existingData)); // Fixed typo
+  }
+  
+  const myTableDiv = document.querySelector('.myTable');
+  myTableDiv.scrollTop = myTableDiv.scrollHeight;
+  </script>
+</body>
+</html>
